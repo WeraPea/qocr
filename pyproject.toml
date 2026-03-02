@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qocrd"
+version = "0.1.0"
+dependencies = [
+  "Pillow",
+  "protobuf"
+]
+
+[project.scripts]
+qocrd = "qocrd.main:main"
