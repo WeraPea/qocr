@@ -22,7 +22,7 @@ Item {
             property string viewMode: "hover" // hover | always
             property string background: "#50000000"
             property string selectedBorder: "#cc56b7a5"
-            property string selectedBackground: "#2656b7a5"
+            property string selectedBackground: "#6656b7a5"
             property string borderColor: "#50d0d0d0"
             property string regionBorder: "#cccc6633"
             property string regionBackground: "#26cc6633"
