@@ -88,7 +88,7 @@ Item {
                 ocr.showRegion = true;
                 regionTimer.restart();
             }
-            function set_config(setting: string, value: string) {
+            function set_config(setting: string, value: string): void {
                 if (value.toLowerCase() === "true")
                     config[setting] = true;
                 else if (value.toLowerCase() === "false")
@@ -97,6 +97,15 @@ Item {
                     config[setting] = Number(value);
                 else
                     config[setting] = value;
+            }
+            function toggle_config(setting: string): void {
+                if (setting === "viewMode")
+                    config[setting] = config[setting] === "hover" ? "always" : "hover";
+                else if (setting === "japaneseOnly")
+                    config[setting] = config[setting] ? false : true;
+            }
+            function get_config(setting: string): string {
+                return config[setting];
             }
         }
     }
