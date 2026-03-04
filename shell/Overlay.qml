@@ -88,6 +88,16 @@ Item {
                 ocr.showRegion = true;
                 regionTimer.restart();
             }
+            function set_config(setting: string, value: string) {
+                if (value.toLowerCase() === "true")
+                    config[setting] = true;
+                else if (value.toLowerCase() === "false")
+                    config[setting] = false;
+                else if (!isNaN(value))
+                    config[setting] = Number(value);
+                else
+                    config[setting] = value;
+            }
         }
     }
 
