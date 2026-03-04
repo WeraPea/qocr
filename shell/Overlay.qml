@@ -75,7 +75,14 @@ Item {
                 });
             }
             function clear(): void {
-                root.ocrData = {};
+                var updated = {};
+                Object.keys(root.ocrData).forEach(function (key) {
+                    var old = root.ocrData[key];
+                    var copy = Object.assign({}, old);
+                    copy.lines = [];
+                    updated[key] = copy;
+                });
+                root.ocrData = updated;
             }
             function show_region(): void {
                 ocr.showRegion = true;
