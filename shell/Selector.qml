@@ -97,8 +97,8 @@ Item {
         y: Math.min(selector.dragStart.y, selector.dragEnd.y)
         width: Math.abs(selector.dragEnd.x - selector.dragStart.x)
         height: Math.abs(selector.dragEnd.y - selector.dragStart.y)
-        color: Qt.rgba(border.color.r, border.color.g, border.color.b, border.color.a * 0.5)
-        border.color: config.selectedBackground
+        color: config.selectedBackground
+        border.color: config.selectedBorder
         border.width: 1
     }
 
