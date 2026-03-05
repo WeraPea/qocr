@@ -17,7 +17,9 @@
         system:
         import nixpkgs {
           inherit system;
-          overlays = [ self.overlays.default ];
+          overlays = [
+            self.overlays.default
+          ];
         }
       );
     in
@@ -36,10 +38,21 @@
         final: prev:
         let
           qocrd = final.python3.pkgs.callPackage ./qocrd.nix { };
-          qocr = final.callPackage ./qocr.nix { inherit qocrd; };
+          quickshell = (
+            prev.quickshell.overrideAttrs (old: {
+              buildInputs = (builtins.filter (x: x != final.jemalloc) old.buildInputs) ++ [
+                final.qt6.qtwebengine
+              ];
+              cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+                (final.lib.cmakeBool "USE_JEMALLOC" false)
+              ];
+              patches = (old.patches or [ ]) ++ [ ./quickshell.patch ];
+            })
+          );
+          qocr = final.callPackage ./qocr.nix { inherit qocrd quickshell; };
         in
         {
-          inherit qocr qocrd;
+          inherit qocr qocrd quickshell;
         };
       devShells = eachSystem (
         system:
@@ -55,6 +68,7 @@
             packages = [
               pkgs.qocr
               pkgs.qocrd
+              pkgs.quickshell
             ];
           };
         }

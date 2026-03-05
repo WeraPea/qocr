@@ -1,0 +1,13 @@
+diff --git a/src/launch/launch.cpp b/src/launch/launch.cpp
+index fd6a0af..044896a 100644
+--- a/src/launch/launch.cpp
++++ b/src/launch/launch.cpp
+@@ -218,7 +218,7 @@ int launch(const LaunchArgs& args, char** argv, QCoreApplication* coreApplicatio
+ 	delete coreApplication;
+
+ 	QGuiApplication* app = nullptr;
+-	auto qArgC = 0;
++	auto qArgC = 1;
+
+ 	if (pragmas.useQApplication) {
+ 		app = new QApplication(qArgC, argv);
