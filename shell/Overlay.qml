@@ -105,14 +105,17 @@ Item {
                 regionTimer.restart();
             }
             function set_config(setting: string, value: string): void {
+                var parts = setting.split(".");
+                var target = parts.length > 1 ? root.config[parts[0]] : root.config;
+                var key = parts[parts.length - 1];
                 if (value.toLowerCase() === "true")
-                    root.config[setting] = true;
+                    target[key] = true;
                 else if (value.toLowerCase() === "false")
-                    root.config[setting] = false;
+                    target[key] = false;
                 else if (!isNaN(value))
-                    root.config[setting] = Number(value);
+                    target[key] = Number(value);
                 else
-                    root.config[setting] = value;
+                    target[key] = value;
             }
             function toggle_config(setting: string): void {
                 if (setting === "viewMode")
@@ -121,7 +124,10 @@ Item {
                     root.config[setting] = root.config[setting] ? false : true;
             }
             function get_config(setting: string): string {
-                return root.config[setting];
+                var parts = setting.split(".");
+                var target = parts.length > 1 ? root.config[parts[0]] : root.config;
+                var key = parts[parts.length - 1];
+                return target[key];
             }
         }
     }
