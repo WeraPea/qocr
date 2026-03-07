@@ -8,6 +8,8 @@ Item {
     id: root
     property var ocrData: ({})
     property alias config: config
+    property bool showOverlay: config.showOverlay
+    property var panels: ({})
 
     FileView {
         path: `${Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config"}/qocr/config.json`
@@ -18,7 +20,12 @@ Item {
             property int boxMargin: 15
             property int border: 1
             property bool japaneseOnly: true
-            property string viewMode: "hover" // hover | always
+            property bool autoRescan: false
+            property real autoRescanDelay: 0
+            property real autoRescanDelayUnchanged: 0.1
+            property bool overlayOnHover: true
+            property bool showOverlay: true
+            property bool hideOverlayOnRescan: false
             property string background: "#50000000"
             property string selectedBorder: "#cc56b7a5"
             property string selectedBackground: "#6656b7a5"
@@ -38,6 +45,14 @@ Item {
         }
     }
 
+    Connections {
+        target: root.config
+        function onAutoRescanChanged() {
+            if (root.config.autoRescan)
+                ocrProc.rescan();
+        }
+    }
+
     function updateMonitor(monitor, data) {
         var updated = Object.assign({}, root.ocrData); // copies to trigger bindings
         updated[monitor] = data;
@@ -52,11 +67,22 @@ Item {
             splitMarker: "\0"
             onRead: data => {
                 // console.log(data);
+                root.showOverlay = root.config.showOverlay;
                 try {
                     var parsed = JSON.parse(data);
-                    root.updateMonitor(parsed.monitor, parsed);
+                    if (parsed.unchanged) {
+                        rescanTimer.interval = root.config.autoRescanDelayUnchanged;
+                    } else {
+                        root.updateMonitor(parsed.monitor, parsed);
+                        rescanTimer.interval = root.config.autoRescanDelay;
+                    }
                 } catch (e) {
                     console.log("Parse error:", e);
+                }
+                if (root.config.autoRescan) {
+                    ocrProc.pendingRescans--;
+                    if (ocrProc.pendingRescans <= 0)
+                        rescanTimer.running = true;
                 }
             }
         }
@@ -69,6 +95,18 @@ Item {
         onExited: (c, s) => console.log(c, s)
         // qmllint enable signal-handler-parameters
         running: true
+
+        property int pendingRescans: 0
+        function rescan() {
+            var entries = Object.entries(root.ocrData);
+            pendingRescans = entries.length;
+            if (root.config.hideOverlayOnRescan)
+                root.showOverlay = false;
+            entries.forEach(([monitor, data]) => {
+                var r = data.region;
+                ocrProc.write(`rescan ${root.config.japaneseOnly} ${r.x} ${r.y} ${r.w} ${r.h} ${r.X} ${r.Y} ${monitor}\n`);
+            });
+        }
     }
 
     Item {
@@ -84,11 +122,7 @@ Item {
                 ocrProc.write(`scan ${root.config.japaneseOnly} true\n`);
             }
             function rescan(): void {
-                Object.entries(root.ocrData).forEach(([monitor, data]) => {
-                    var r = data.region;
-                    root.updateMonitor(monitor, {});
-                    ocrProc.write(`rescan ${root.config.japaneseOnly} ${r.x} ${r.y} ${r.w} ${r.h} ${r.X} ${r.Y} ${monitor}\n`);
-                });
+                ocrProc.rescan();
             }
             function clear_overlay(): void {
                 var updated = {};
@@ -121,10 +155,7 @@ Item {
                     target[key] = value;
             }
             function toggle_config(setting: string): void {
-                if (setting === "viewMode")
-                    root.config[setting] = root.config[setting] === "hover" ? "always" : "hover";
-                else if (setting === "japaneseOnly")
-                    root.config[setting] = root.config[setting] ? false : true;
+                root.config[setting] = !root.config[setting];
             }
             function get_config(setting: string): string {
                 var parts = setting.split(".");
@@ -132,7 +163,23 @@ Item {
                 var key = parts[parts.length - 1];
                 return target[key];
             }
+            function trigger_popup(x: int, y: int, monitor: string): void {
+                var panel = root.panels[monitor];
+                if (!panel)
+                    return;
+
+                panel.yomitanLookup.lookup({
+                    x: x,
+                    y: y
+                });
+            }
         }
+    }
+
+    Timer {
+        id: rescanTimer
+        interval: root.config.autoRescanDelay * 1000
+        onTriggered: ocrProc.rescan()
     }
 
     Timer {
@@ -156,13 +203,21 @@ Item {
             property var lines: ocrData.lines ?? []
             property var region: ocrData.region
 
+            Component.onCompleted: {
+                root.panels[screen.name] = panel;
+            }
+
+            Component.onDestruction: {
+                delete root.panels[screen.name];
+            }
+
             onLineRectsChanged: updateRegions()
             onOcrDataChanged: {
                 panel.lineRects = [];
             }
 
             function updateRegions() {
-                panel.regionItems = (yomitanPopup.visible ? [yomitanPopup] : []).concat(panel.lineRects);
+                panel.regionItems = (yomitanPopup.visible ? [yomitanPopup] : []).concat(root.config.showOverlay ? panel.lineRects : []);
             }
 
             color: "transparent"
@@ -206,7 +261,7 @@ Item {
 
             HoverHandler {
                 id: hover
-                enabled: root.config.viewMode === "hover"
+                enabled: root.config.overlayOnHover
                 property var hoveredLines: ({})
 
                 function updateHovered(pos) {
@@ -233,7 +288,9 @@ Item {
                 rects: panel.lineRects
             }
 
+            property alias yomitanLookup: yomitanLookup
             YomitanLookup {
+                id: yomitanLookup
                 anchors.fill: parent
                 lines: panel.lines
                 popup: yomitanPopup
@@ -249,6 +306,7 @@ Item {
             Item {
                 id: overlay
                 anchors.fill: parent
+                visible: root.showOverlay
 
                 Repeater {
                     model: panel.lines
@@ -262,7 +320,7 @@ Item {
 
                         Rectangle {
                             id: lineRect
-                            property bool _visible: root.config.viewMode === "always" || line.hovered
+                            property bool _visible: overlay.visible && (!root.config.overlayOnHover || line.hovered)
                             visible: false
                             x: parent.modelData.aabb.x - root.config.boxMargin
                             y: parent.modelData.aabb.y - root.config.boxMargin

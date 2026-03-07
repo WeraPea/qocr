@@ -4,8 +4,11 @@ from .screenai import ScreenAiOcr
 import json
 import subprocess
 import sys
+import time
 
 ocr = ScreenAiOcr()
+
+captures = {}
 
 def scan(x, y, w, h, X, Y, monitor, japanese):
     grim_result = subprocess.run(
@@ -14,7 +17,12 @@ def scan(x, y, w, h, X, Y, monitor, japanese):
         stdin=subprocess.DEVNULL
     )
     if grim_result.returncode != 0:
+        print('{"unchanged":true}\0', flush=True)
         return
+    if grim_result.stdout == captures.get(monitor):
+        print('{"unchanged":true}\0', flush=True)
+        return
+    captures[monitor] = grim_result.stdout
 
     image = Image.open(BytesIO(grim_result.stdout))
     text = ocr.scan(image, (X, Y, w, h), japanese)
