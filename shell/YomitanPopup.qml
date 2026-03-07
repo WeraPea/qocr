@@ -168,7 +168,7 @@ Rectangle {
                 if (ent.type === "structured-content")
                     html += renderNode(ent.content);
                 else if (typeof ent === "string")
-                    html += ent;
+                    html += '<div style="white-space: pre-wrap">' + ent + "</div>";
             }
             html += '</div>';
         }
