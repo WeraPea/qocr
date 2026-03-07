@@ -33,6 +33,7 @@ Item {
                 property string foregroundSecondaryColor: "#909090"
                 property string extraCss: ""
                 property string apiUrl: "http://127.0.0.1:19633"
+                property int textScanLength: 16
             }
         }
     }
@@ -222,6 +223,7 @@ Item {
                 anchors.fill: parent
                 lines: panel.lines
                 popup: yomitanPopup
+                textScanLength: root.config.yomitan.textScanLength // qmllint disable missing-property
             }
 
             YomitanPopup {

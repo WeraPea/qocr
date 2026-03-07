@@ -4,6 +4,7 @@ Item {
     id: root
     required property var popup
     required property var lines
+    required property int textScanLength
     TapHandler {
         acceptedButtons: Qt.MiddleButton
         onTapped: tap => {
@@ -33,12 +34,14 @@ Item {
                 return;
 
             var text = "";
-            for (var li = best.li; li < root.lines.length; li++) {
+            outer: for (var li = best.li; li < root.lines.length; li++) {
                 var words = root.lines[li].words;
                 for (var wi = (li === best.li ? best.wi : 0); wi < words.length; wi++) {
                     var syms = words[wi].symbols;
                     for (var si = (li === best.li && wi === best.wi ? best.si : 0); si < syms.length; si++) {
                         text += syms[si].text;
+                        if (text.replace(/\s/g, '').length >= root.textScanLength)
+                            break outer;
                     }
                     if (words[wi].has_space_after)
                         text += " ";
