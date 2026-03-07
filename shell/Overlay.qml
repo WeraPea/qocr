@@ -7,12 +7,13 @@ import QtQuick
 Item {
     id: root
     property var ocrData: ({})
+    property alias config: config
 
     FileView {
         path: `${Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config"}/qocr/config.json`
         watchChanges: true
         onFileChanged: reload()
-        JsonAdapter {
+        JsonAdapter { // qmllint disable unresolved-type
             id: config
             property int boxMargin: 15
             property int border: 1
@@ -59,7 +60,9 @@ Item {
                 console.log("qocrd stderr:", data);
             }
         }
+        // qmllint disable signal-handler-parameters
         onExited: (c, s) => console.log(c, s)
+        // qmllint enable signal-handler-parameters
         running: true
     }
 
@@ -70,15 +73,15 @@ Item {
             target: "ocr"
 
             function scan(): void {
-                ocrProc.write(`scan ${config.japaneseOnly} false\n`);
+                ocrProc.write(`scan ${root.config.japaneseOnly} false\n`);
             }
             function scan_fullscreen(): void {
-                ocrProc.write(`scan ${config.japaneseOnly} true\n`);
+                ocrProc.write(`scan ${root.config.japaneseOnly} true\n`);
             }
             function rescan(): void {
                 Object.entries(root.ocrData).forEach(([monitor, data]) => {
                     var r = data.region;
-                    ocrProc.write(`rescan ${config.japaneseOnly} ${r.x} ${r.y} ${r.w} ${r.h} ${r.X} ${r.Y} ${monitor}\n`);
+                    ocrProc.write(`rescan ${root.config.japaneseOnly} ${r.x} ${r.y} ${r.w} ${r.h} ${r.X} ${r.Y} ${monitor}\n`);
                 });
             }
             function clear(): void {
@@ -97,22 +100,22 @@ Item {
             }
             function set_config(setting: string, value: string): void {
                 if (value.toLowerCase() === "true")
-                    config[setting] = true;
+                    root.config[setting] = true;
                 else if (value.toLowerCase() === "false")
-                    config[setting] = false;
+                    root.config[setting] = false;
                 else if (!isNaN(value))
-                    config[setting] = Number(value);
+                    root.config[setting] = Number(value);
                 else
-                    config[setting] = value;
+                    root.config[setting] = value;
             }
             function toggle_config(setting: string): void {
                 if (setting === "viewMode")
-                    config[setting] = config[setting] === "hover" ? "always" : "hover";
+                    root.config[setting] = root.config[setting] === "hover" ? "always" : "hover";
                 else if (setting === "japaneseOnly")
-                    config[setting] = config[setting] ? false : true;
+                    root.config[setting] = root.config[setting] ? false : true;
             }
             function get_config(setting: string): string {
-                return config[setting];
+                return root.config[setting];
             }
         }
     }
@@ -126,7 +129,7 @@ Item {
     Variants {
         model: Quickshell.screens
 
-        PanelWindow {
+        PanelWindow { // qmllint disable uncreatable-type
             id: panel
 
             required property var modelData
@@ -180,21 +183,21 @@ Item {
                     y: panel.region ? panel.region.Y : 0
                     width: panel.region ? panel.region.w : 0
                     height: panel.region ? panel.region.h : 0
-                    color: config.regionBackground
-                    border.color: config.regionBorder
+                    color: root.config.regionBackground
+                    border.color: root.config.regionBorder
                     border.width: 2
                 }
             }
 
             HoverHandler {
                 id: hover
-                enabled: config.viewMode === "hover"
+                enabled: root.config.viewMode === "hover"
                 property var hoveredLines: ({})
 
                 function updateHovered(pos) {
-                    for (var li = 0; li < lines.length; li++) {
-                        var b = lines[li].aabb;
-                        hoveredLines[li] = pos.x < b.x + b.width + config.boxMargin && pos.x > b.x - config.boxMargin && pos.y < b.y + b.height + config.boxMargin && pos.y > b.y - config.boxMargin;
+                    for (var li = 0; li < panel.lines.length; li++) {
+                        var b = panel.lines[li].aabb;
+                        hoveredLines[li] = pos.x < b.x + b.width + root.config.boxMargin && pos.x > b.x - root.config.boxMargin && pos.y < b.y + b.height + root.config.boxMargin && pos.y > b.y - root.config.boxMargin;
                     }
                     hoveredLines = Object.assign({}, hoveredLines); // trigger binding
                 }
@@ -223,7 +226,7 @@ Item {
 
             YomitanPopup {
                 id: yomitanPopup
-                config: config.yomitan
+                config: root.config.yomitan
                 onVisibleChanged: panel.updateRegions()
             }
 
@@ -243,16 +246,16 @@ Item {
 
                         Rectangle {
                             id: lineRect
-                            property bool _visible: config.viewMode === "always" || line.hovered
+                            property bool _visible: root.config.viewMode === "always" || line.hovered
                             visible: false
-                            x: parent.modelData.aabb.x - config.boxMargin
-                            y: parent.modelData.aabb.y - config.boxMargin
-                            width: parent.modelData.aabb.width + config.boxMargin * 2
-                            height: parent.modelData.aabb.height + config.boxMargin * 2
+                            x: parent.modelData.aabb.x - root.config.boxMargin
+                            y: parent.modelData.aabb.y - root.config.boxMargin
+                            width: parent.modelData.aabb.width + root.config.boxMargin * 2
+                            height: parent.modelData.aabb.height + root.config.boxMargin * 2
 
-                            color: config.background
-                            border.color: config.borderColor
-                            border.width: config.border
+                            color: root.config.background
+                            border.color: root.config.borderColor
+                            border.width: root.config.border
                         }
 
                         Component.onCompleted: {
@@ -279,7 +282,7 @@ Item {
                                     height: parent.modelData.whitespace_box.height
                                     rotation: Math.abs(parent.modelData.whitespace_box.angle ?? 0) <= 5 ? 0 : parent.modelData.whitespace_box.angle
                                     transformOrigin: Item.TopLeft
-                                    color: config.selectedBackground
+                                    color: root.config.selectedBackground
                                 }
                                 Repeater {
                                     model: parent.modelData.symbols
@@ -299,7 +302,7 @@ Item {
                                             height: parent.modelData.box.height
                                             rotation: Math.abs(parent.modelData.box.angle) <= 5 ? 0 : parent.modelData.box.angle
                                             transformOrigin: Item.TopLeft
-                                            color: config.selectedBackground
+                                            color: root.config.selectedBackground
                                         }
                                     }
                                 }
