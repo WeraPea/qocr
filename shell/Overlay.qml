@@ -38,6 +38,12 @@ Item {
         }
     }
 
+    function updateMonitor(monitor, data) {
+        var updated = Object.assign({}, root.ocrData); // copies to trigger bindings
+        updated[monitor] = data;
+        root.ocrData = updated;
+    }
+
     Process {
         id: ocrProc
         command: ["qocrd"]
@@ -48,9 +54,7 @@ Item {
                 // console.log(data);
                 try {
                     var parsed = JSON.parse(data);
-                    var updated = Object.assign({}, root.ocrData); // copy to trigger binding
-                    updated[parsed.monitor] = parsed;
-                    root.ocrData = updated;
+                    root.updateMonitor(parsed.monitor, parsed);
                 } catch (e) {
                     console.log("Parse error:", e);
                 }
@@ -82,6 +86,7 @@ Item {
             function rescan(): void {
                 Object.entries(root.ocrData).forEach(([monitor, data]) => {
                     var r = data.region;
+                    root.updateMonitor(monitor, {});
                     ocrProc.write(`rescan ${root.config.japaneseOnly} ${r.x} ${r.y} ${r.w} ${r.h} ${r.X} ${r.Y} ${monitor}\n`);
                 });
             }
