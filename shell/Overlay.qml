@@ -90,7 +90,7 @@ Item {
                     ocrProc.write(`rescan ${root.config.japaneseOnly} ${r.x} ${r.y} ${r.w} ${r.h} ${r.X} ${r.Y} ${monitor}\n`);
                 });
             }
-            function clear(): void {
+            function clear_overlay(): void {
                 var updated = {};
                 Object.keys(root.ocrData).forEach(function (key) {
                     var old = root.ocrData[key];
@@ -99,6 +99,9 @@ Item {
                     updated[key] = copy;
                 });
                 root.ocrData = updated;
+            }
+            function clear_all(): void {
+                root.ocrData = {};
             }
             function show_region(): void {
                 ocr.showRegion = true;
