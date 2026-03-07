@@ -2,8 +2,6 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import Quickshell.Widgets
-import QtQuick.Layouts
 import QtQuick
 
 Item {
@@ -26,6 +24,15 @@ Item {
             property string borderColor: "#50d0d0d0"
             property string regionBorder: "#cccc6633"
             property string regionBackground: "#26cc6633"
+            property JsonObject yomitan: JsonObject {
+                property string backgroundColor: "#121212"
+                property string foregroundColor: "#d0d0d0"
+                property string borderColor: "#56b7a5"
+                property string separatorColor: "#505050"
+                property string foregroundSecondaryColor: "#909090"
+                property string extraCss: ""
+                property string apiUrl: "http://127.0.0.1:19633"
+            }
         }
     }
 
@@ -125,12 +132,20 @@ Item {
             required property var modelData
             screen: modelData
 
+            property var lineRects: []
             property var regionItems: []
             property var ocrData: root.ocrData[screen.name] ?? {}
             property var lines: ocrData.lines ?? []
             property var region: ocrData.region
 
-            onOcrDataChanged: panel.regionItems = []
+            onLineRectsChanged: updateRegions()
+            onOcrDataChanged: {
+                panel.lineRects = [];
+            }
+
+            function updateRegions() {
+                panel.regionItems = (yomitanPopup.visible ? [yomitanPopup] : []).concat(panel.lineRects);
+            }
 
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
@@ -197,7 +212,19 @@ Item {
 
             CombinedLineRects {
                 id: combined
-                rects: panel.regionItems
+                rects: panel.lineRects
+            }
+
+            YomitanLookup {
+                anchors.fill: parent
+                lines: panel.lines
+                popup: yomitanPopup
+            }
+
+            YomitanPopup {
+                id: yomitanPopup
+                config: config.yomitan
+                onVisibleChanged: panel.updateRegions()
             }
 
             Item {
@@ -229,9 +256,9 @@ Item {
                         }
 
                         Component.onCompleted: {
-                            var arr = panel.regionItems.slice();
+                            var arr = panel.lineRects.slice();
                             arr.push(lineRect);
-                            panel.regionItems = arr;
+                            panel.lineRects = arr;
                         }
 
                         Repeater {
