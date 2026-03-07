@@ -52,6 +52,9 @@ Item {
             if (root.config.autoRescan)
                 ocrProc.rescan();
         }
+        function onShowOverlayChanged() {
+            root.showOverlay = root.config.showOverlay;
+        }
     }
 
     function updateMonitor(monitor, data) {
