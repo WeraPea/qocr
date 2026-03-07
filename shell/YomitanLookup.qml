@@ -4,7 +4,7 @@ Item {
     id: root
     required property var popup
     required property var lines
-    required property int textScanLength
+    required property var config
 
     function lookup(pos) {
         var best = null;
@@ -16,7 +16,7 @@ Item {
                 for (var si = 0; si < symbols.length; si++) {
                     var b = symbols[si].box;
                     var dist = obbDist(pos, b);
-                    if (dist < bestDist) {
+                    if (dist < bestDist && dist <= config.lookupMaxDistance) {
                         bestDist = dist;
                         best = {
                             li: li,
@@ -38,7 +38,7 @@ Item {
                 var syms = words[wi].symbols;
                 for (var si = (li === best.li && wi === best.wi ? best.si : 0); si < syms.length; si++) {
                     text += syms[si].text;
-                    if (text.replace(/\s/g, '').length >= root.textScanLength)
+                    if (text.replace(/\s/g, '').length >= root.config.textScanLength)
                         break outer;
                 }
                 if (words[wi].has_space_after)

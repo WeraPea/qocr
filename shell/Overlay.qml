@@ -41,6 +41,7 @@ Item {
                 property string extraCss: ""
                 property string apiUrl: "http://127.0.0.1:19633"
                 property int textScanLength: 16
+                property int lookupMaxDistance: 10
             }
         }
     }
@@ -294,7 +295,7 @@ Item {
                 anchors.fill: parent
                 lines: panel.lines
                 popup: yomitanPopup
-                textScanLength: root.config.yomitan.textScanLength // qmllint disable missing-property
+                config: root.config.yomitan
             }
 
             YomitanPopup {
