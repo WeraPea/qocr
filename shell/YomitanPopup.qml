@@ -6,14 +6,15 @@ import QtWebEngine
 Rectangle {
     id: root
 
+    anchors.fill: parent
     visible: response !== ""
+    color: "transparent"
+
+    property alias popupWidth: popup.width
+    property alias popupHeight: popup.height
 
     required property var config
     property var response: ""
-
-    width: 400
-    height: 480
-    color: config.backgroundColor
 
     function request(endpoint, body, callback) {
         var xhr = new XMLHttpRequest();
@@ -33,8 +34,8 @@ Rectangle {
             if ((data.dictionaryEntries?.length ?? 0) > 0) {
                 response = data;
                 view.loadHtml(root.buildHtml(response));
-                root.x = newPos.x;
-                root.y = newPos.y;
+                popup.x = newPos.x;
+                popup.y = newPos.y;
             }
         });
     }
@@ -260,21 +261,9 @@ Rectangle {
         return groups;
     }
 
-    WebEngineView {
-        id: view
-        anchors.fill: parent
-        backgroundColor: root.config.backgroundColor
-
-        onContextMenuRequested: function (req) {
-            req.accepted = true;
-        }
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        color: "transparent"
-        border.color: root.config.borderColor
-        border.width: 1
+    TapHandler {
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        onTapped: root.clear()
     }
 
     PanelWindow {
@@ -289,14 +278,61 @@ Rectangle {
         visible: root.visible
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         WlrLayershell.layer: WlrLayer.Top // below the popup
+        Shortcut {
+            sequence: "Escape"
+            onActivated: root.clear()
+        }
 
         TapHandler {
             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             onTapped: root.clear()
         }
+    }
+
+    PanelWindow {
+        anchors {
+            left: true
+            right: true
+            top: true
+            bottom: true
+        }
+        exclusionMode: ExclusionMode.Ignore
+        color: "transparent"
+        visible: root.visible
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        WlrLayershell.layer: WlrLayer.Overlay
         Shortcut {
             sequence: "Escape"
             onActivated: root.clear()
+        }
+
+        mask: Region {
+            item: popup
+        }
+
+        Rectangle {
+            id: popup
+
+            width: 400
+            height: 480
+            color: root.config.backgroundColor
+
+            WebEngineView {
+                id: view
+                anchors.fill: parent
+                backgroundColor: root.config.backgroundColor
+
+                onContextMenuRequested: function (req) {
+                    req.accepted = true;
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                border.color: root.config.borderColor
+                border.width: 1
+            }
         }
     }
 }

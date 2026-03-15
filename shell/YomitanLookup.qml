@@ -51,9 +51,9 @@ Item {
         var hitBox = root.lines[best.li].words[best.wi].symbols[best.si].aabb;
         var x, y;
         x = hitBox.x + 10;
-        if (x + root.popup.width > Screen.width)
-            x = Screen.width - root.popup.width;
-        y = hitBox.y - root.popup.height - 10;
+        if (x + root.popup.popupWidth > Screen.width)
+            x = Screen.width - root.popup.popupWidth;
+        y = hitBox.y - root.popup.popupHeight - 10;
         if (y < 0)
             y = hitBox.y + hitBox.height + 10;
         root.popup.lookup(text, {

@@ -221,7 +221,7 @@ Item {
             }
 
             function updateRegions() {
-                panel.regionItems = (yomitanPopup.visible ? [yomitanPopup] : []).concat(root.config.showOverlay ? panel.lineRects : []);
+                panel.regionItems = root.config.showOverlay ? panel.lineRects : [];
             }
 
             color: "transparent"
