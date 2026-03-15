@@ -15,6 +15,7 @@ Rectangle {
     property alias popupHeight: popup.height
 
     required property var config
+    required property var screen
     property var response: ""
 
     function request(endpoint, body, callback) {
@@ -317,6 +318,7 @@ Rectangle {
     }
 
     PanelWindow {
+        screen: root.screen
         anchors {
             left: true
             right: true
@@ -340,6 +342,7 @@ Rectangle {
     }
 
     PanelWindow {
+        screen: root.screen
         anchors {
             left: true
             right: true

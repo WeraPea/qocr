@@ -305,6 +305,7 @@ Item {
                 id: yomitanPopup
                 config: root.config.yomitan
                 onVisibleChanged: panel.updateRegions()
+                screen: panel.screen
             }
 
             Item {
