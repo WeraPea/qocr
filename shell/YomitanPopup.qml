@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import QtWebEngine
+import QtWebChannel
 
 Rectangle {
     id: root
@@ -33,9 +34,11 @@ Rectangle {
         }, function (data) {
             if ((data.dictionaryEntries?.length ?? 0) > 0) {
                 response = data;
-                view.loadHtml(root.buildHtml(response));
-                popup.x = newPos.x;
-                popup.y = newPos.y;
+                view.loadHtml(root.buildHtml(response, term));
+                if (newPos) {
+                    popup.x = newPos.x;
+                    popup.y = newPos.y;
+                }
             }
         });
     }
@@ -45,10 +48,29 @@ Rectangle {
         view.loadHtml("");
     }
 
-    function buildHtml(data) {
+    function buildHtml(data, term) {
         var entries = data.dictionaryEntries ?? [];
 
-        var body = "";
+        var body = `
+          <form onsubmit="submitQuery(); return false;" class="lookup">
+            <input type="text" id="lquery" value="${term}">
+            <button type="submit">Lookup</button>
+          </form>
+          <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+          <script>
+          let bridge = null;
+          new QWebChannel(qt.webChannelTransport, function(channel) {
+              bridge = channel.objects.bridge;
+          });
+          function submitQuery() {
+              var q = document.getElementById("lquery").value;
+              if (bridge) {
+                  bridge.lookup(q);
+              }
+          }
+          </script>
+        `;
+
         for (var ei = 0; ei < entries.length; ei++) {
             var entry = entries[ei];
             if (ei > 0)
@@ -96,6 +118,34 @@ Rectangle {
         }
         .badge-star { background: #025CAA; }
         .badge-dict { background: #9057AD; }
+
+        .lookup {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .lookup input {
+            flex: 1;
+            background: transparent;
+            color: ${config.foregroundColor};
+            border: 1px solid ${config.separatorColor};
+            border-radius: 0.25em;
+            padding: 0.2em 0.3em;
+            font-size: 1em;
+            outline: none;
+        }
+        .lookup button {
+            background: ${config.foregroundColor};
+            color: ${config.backgroundColor};
+            border: none;
+            border-radius: 0.25em;
+            padding: 0.2em 0.3em;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .lookup input:focus { border-color: ${config.foregroundSecondaryColor}; }
+        .lookup button:hover { filter: brightness(1.1); }
+        .lookup button:active { filter: brightness(0.9); }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: ${config.backgroundColor}; }
@@ -324,6 +374,19 @@ Rectangle {
 
                 onContextMenuRequested: function (req) {
                     req.accepted = true;
+                }
+                webChannel: channel
+                WebChannel {
+                    id: channel
+                    registeredObjects: [bridge]
+                }
+                QtObject {
+                    id: bridge
+                    WebChannel.id: "bridge"
+
+                    function lookup(term) {
+                        root.lookup(term, null);
+                    }
                 }
             }
 

@@ -64,6 +64,7 @@
             inputsFrom = [
               pkgs.qocr
               pkgs.qocrd
+              pkgs.quickshell
             ];
             packages = [
               pkgs.qocr
