@@ -43,6 +43,27 @@ Item {
                 property int textScanLength: 16
                 property int lookupMaxDistance: 10
             }
+            property JsonObject anki: JsonObject {
+                property bool enable: true
+                property string ankiConnectUrl: "http://127.0.0.1:8765"
+                property string deck: "Mining"
+                property string model: "Lapis"
+                property list<string> tags: ["qocr"]
+                property bool allowDuplicate: true
+                property var fields: {
+                    "Expression": "{expression}",
+                    "ExpressionFurigana": "{furigana-plain}",
+                    "ExpressionReading": "{reading}",
+                    "ExpressionAudio": "{audio}",
+                    "MainDefinition": "{single-glossary-jitendexorg-2025-06-01}",
+                    "Glossary": "{glossary}",
+                    "IsWordAndSentenceCard": "x",
+                    "PitchPosition": "{pitch-accent-positions}",
+                    "PitchCategories": "{pitch-accent-categories}",
+                    "Frequency": "{frequency-harmonic-rank}",
+                    "FreqSort": "{frequency-harmonic-rank}",
+                }
+            }
         }
     }
 
@@ -304,6 +325,7 @@ Item {
             YomitanPopup {
                 id: yomitanPopup
                 config: root.config.yomitan
+                ankiConfig: root.config.anki
                 onVisibleChanged: panel.updateRegions()
                 screen: panel.screen
             }

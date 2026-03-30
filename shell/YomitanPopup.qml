@@ -8,20 +8,20 @@ Rectangle {
     id: root
 
     anchors.fill: parent
-    visible: response !== ""
+    visible: yomitanResponse !== ""
     color: "transparent"
 
     property alias popupWidth: popup.width
     property alias popupHeight: popup.height
 
     required property var config
+    required property var ankiConfig
     required property var screen
-    property var response: ""
+    property var yomitanResponse: ""
 
-    function request(endpoint, body, callback) {
+    function yomitanRequest(endpoint, body, callback) {
         var xhr = new XMLHttpRequest();
         xhr.open("POST", config.apiUrl + "/" + endpoint);
-        xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function () {
             if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200)
                 callback(JSON.parse(xhr.responseText));
@@ -29,13 +29,34 @@ Rectangle {
         xhr.send(JSON.stringify(body));
     }
 
+    function ankiConnectRequest(action, version, params, callback) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', ankiConfig.ankiConnectUrl);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    throw response.error;
+                } else {
+                    if (response.hasOwnProperty('result'))
+                        callback(response.result);
+                }
+            }
+        };
+        xhr.send(JSON.stringify({
+            action,
+            version,
+            params
+        }));
+    }
+
     function lookup(term, newPos) {
-        request("termEntries", {
+        yomitanRequest("termEntries", {
             term: term
         }, function (data) {
             if ((data.dictionaryEntries?.length ?? 0) > 0) {
-                response = data;
-                view.loadHtml(root.buildHtml(response, term));
+                yomitanResponse = data;
+                view.loadHtml(root.buildHtml(yomitanResponse, term));
                 if (newPos) {
                     popup.x = newPos.x;
                     popup.y = newPos.y;
@@ -44,8 +65,70 @@ Rectangle {
         });
     }
 
+    function addToAnki(term, index) {
+        var yomitanAnkiFields = [];
+        for (const [key, value] of Object.entries(ankiConfig.fields)) {
+            var rx = /\{([^}]+)\}/g;
+            var match;
+            while (match = rx.exec(value)) {
+                yomitanAnkiFields.push(match[1]);
+            }
+        }
+
+        yomitanRequest("ankiFields", {
+            text: term,
+            type: "term",
+            markers: yomitanAnkiFields,
+            includeMedia: true,
+            maxEntries: index + 1
+        }, function (data) {
+            var ankiFields = {};
+            for (const [key, value] of Object.entries(ankiConfig.fields)) {
+                var ankiField = value;
+                for (const [kkey, vvalue] of Object.entries(data.fields[index])) { // assumes termEntries and ankiFields match
+                    ankiField = ankiField.replace(`{${kkey}}`, vvalue);
+                }
+                ankiFields[key] = ankiField;
+            }
+
+            for (var i = 0; i < data.dictionaryMedia.length; i++) {
+                if (Object.values(ankiFields).some(v => v.includes(data.dictionaryMedia[i].ankiFilename)))
+                    ankiConnectRequest('storeMediaFile', 6, {
+                        filename: data.dictionaryMedia[i].ankiFilename,
+                        data: data.dictionaryMedia[i].content
+                    }, function (res) {
+                        console.log("added media " + res);
+                    });
+            }
+
+            for (var i = 0; i < data.audioMedia.length; i++) {
+                if (Object.values(ankiFields).some(v => v.includes(data.audioMedia[i].ankiFilename)))
+                    ankiConnectRequest('storeMediaFile', 6, {
+                        filename: data.audioMedia[i].ankiFilename,
+                        data: data.audioMedia[i].content
+                    }, function (res) {
+                        console.log("added media " + res);
+                    });
+            }
+
+            ankiConnectRequest('addNote', 6, {
+                note: {
+                    deckName: ankiConfig.deck,
+                    modelName: ankiConfig.model,
+                    tags: ankiConfig.tags,
+                    fields: ankiFields,
+                    options: {
+                        allowDuplicate: ankiConfig.allowDuplicate
+                    }
+                }
+            }, function (res) {
+                console.log("added card " + res);
+            });
+        });
+    }
+
     function clear() {
-        response = "";
+        yomitanResponse = "";
         view.loadHtml("");
     }
 
@@ -69,6 +152,11 @@ Rectangle {
                   bridge.lookup(q);
               }
           }
+          function addToAnki(term, index) {
+              if (bridge) {
+                  bridge.addToAnki(term, index);
+              }
+          }
           </script>
         `;
 
@@ -76,7 +164,7 @@ Rectangle {
             var entry = entries[ei];
             if (ei > 0)
                 body += '<hr class="entry-sep">';
-            body += buildEntry(entry);
+            body += buildEntry(entry, term, ei);
         }
 
         return `<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -148,6 +236,19 @@ Rectangle {
         .lookup button:hover { filter: brightness(1.1); }
         .lookup button:active { filter: brightness(0.9); }
 
+        .anki {
+            margin-left: auto;
+            background: ${config.foregroundColor};
+            color: ${config.backgroundColor};
+            border: none;
+            border-radius: 0.25em;
+            padding: 0.2em 0.3em;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .anki:hover { filter: brightness(1.1); }
+        .anki:active { filter: brightness(0.9); }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: ${config.backgroundColor}; }
         ::-webkit-scrollbar-thumb { background: ${config.foregroundSecondaryColor}; border-radius: 3px; }
@@ -156,15 +257,16 @@ Rectangle {
         </head><body>${body}</body></html>`;
     }
 
-    function buildEntry(entry) {
+    function buildEntry(entry, term, index) {
         var hw = entry.headwords?.[0] ?? {};
         var html = '<div class="entry">';
 
-        // term + reading header
+        // term + reading + anki button header
         html += '<div class="entry-header">';
         html += '<span class="term">' + (hw.term ?? "") + '</span>';
         if (hw.reading && hw.reading !== hw.term)
             html += '<span class="reading">' + (hw.reading) + '</span>';
+        html += `<button class="anki" onclick="addToAnki('${term}', ${index})">+</button>`;
         html += '</div>';
 
         // inflections
@@ -389,6 +491,9 @@ Rectangle {
 
                     function lookup(term) {
                         root.lookup(term, null);
+                    }
+                    function addToAnki(term, index) {
+                        root.addToAnki(term, index);
                     }
                 }
             }
