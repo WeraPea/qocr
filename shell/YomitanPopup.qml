@@ -99,7 +99,7 @@ Rectangle {
             margin: 8px -12px;
         }
         .entry-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-        .term    { font-size: 2em; font-weight: bold; }
+        .term    { font-size: 2em; }
         .reading { font-size: 1.2em; color: #66d9ee; }
         .inflections { font-size: 0.9em; color: ${config.foregroundSecondaryColor}; margin-bottom: 0.2em; }
         .freqs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
