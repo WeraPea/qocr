@@ -31,6 +31,16 @@ Item {
         if (best === null)
             return;
 
+        var line = root.lines[best.li].text;
+        var symbolIndex = 0;
+        for (var wi = 0; wi < best.wi; wi++) {
+            symbolIndex += root.lines[best.li].words[wi].text.length;
+            if (root.lines[best.li].words[wi].has_space_after) {
+                symbolIndex += 1;
+            }
+        }
+        symbolIndex += best.si;
+
         var text = "";
         outer: for (var li = best.li; li < root.lines.length; li++) {
             var words = root.lines[li].words;
@@ -45,7 +55,7 @@ Item {
                     text += " ";
             }
             if (li < root.lines.length - 1)
-                text += "\n";
+                text += " ";
         }
 
         var hitBox = root.lines[best.li].words[best.wi].symbols[best.si].aabb;
@@ -59,7 +69,7 @@ Item {
         root.popup.lookup(text, {
             x: x,
             y: y
-        });
+        }, line, symbolIndex);
     }
 
     function obbDist(pos, box) {

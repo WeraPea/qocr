@@ -18,6 +18,8 @@ Rectangle {
     required property var ankiConfig
     required property var screen
     property var yomitanResponse: ""
+    property var line: ""
+    property var symbolIndex
 
     function yomitanRequest(endpoint, body, callback) {
         var xhr = new XMLHttpRequest();
@@ -50,12 +52,14 @@ Rectangle {
         }));
     }
 
-    function lookup(term, newPos) {
+    function lookup(term, newPos, line, index) {
         yomitanRequest("termEntries", {
             term: term
         }, function (data) {
             if ((data.dictionaryEntries?.length ?? 0) > 0) {
                 yomitanResponse = data;
+                root.line = line;
+                root.symbolIndex = index;
                 view.loadHtml(root.buildHtml(yomitanResponse, term));
                 checkAnki(term);
                 if (newPos) {
@@ -64,6 +68,32 @@ Rectangle {
                 }
             }
         });
+    }
+
+    function replaceCloze(field, entryIndex) {
+        if (!/\{cloze-.*?\}/.test(field) || !root.line || !root.symbolIndex) {
+            return field;
+        }
+
+        var primarySource = null;
+        for (let i = 0; i < yomitanResponse.dictionaryEntries[entryIndex].headwords.length; i++) {
+            primarySource = yomitanResponse.dictionaryEntries[entryIndex].headwords[i].sources.find(s => s.isPrimary);
+            if (primarySource)
+                break;
+        }
+        if (!primarySource) {
+            return field;
+        }
+
+        const clozeBody = primarySource.originalText;
+        const clozePrefix = root.line.slice(0, root.symbolIndex);
+        const clozeSuffix = root.line.slice(root.symbolIndex + clozeBody.length);
+
+        field = field.replace("{cloze-prefix}", clozePrefix);
+        field = field.replace("{cloze-body}", clozeBody);
+        field = field.replace("{cloze-suffix}", clozeSuffix);
+
+        return field;
     }
 
     function addToAnki(term, index) {
@@ -89,6 +119,7 @@ Rectangle {
             for (const [key, value] of Object.entries(ankiConfig.fields)) {
                 var ankiField = value;
                 for (const [kkey, vvalue] of Object.entries(data.fields[index])) { // assumes termEntries and ankiFields match
+                    ankiField = replaceCloze(ankiField, index);
                     ankiField = ankiField.replace(`{${kkey}}`, vvalue);
                 }
                 ankiFields[key] = ankiField;
@@ -157,6 +188,7 @@ Rectangle {
                 for (var i = 0; i < ankiFieldsResult.fields.length; i++) {
                     var ankiField = firstFieldValue;
                     for (const [kkey, vvalue] of Object.entries(ankiFieldsResult.fields[i])) { // assumes termEntries and ankiFields match
+                        ankiField = replaceCloze(ankiField, i);
                         ankiField = ankiField.replace(`{${kkey}}`, vvalue);
                     }
 
@@ -203,7 +235,6 @@ Rectangle {
                     ankiConnectRequest('multi', 6, {
                         actions: actions
                     }, function (findCardsResults) {
-
                         var cards = [];
                         var cardsIndexes = new Map();
                         for (var i = 0; i < findCardsResults.length; i++) {
@@ -684,7 +715,7 @@ Rectangle {
                     WebChannel.id: "bridge"
 
                     function lookup(term) {
-                        root.lookup(term, null);
+                        root.lookup(term, null, null, null);
                     }
                     function addToAnki(term, index) {
                         root.addToAnki(term, index);

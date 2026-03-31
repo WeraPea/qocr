@@ -56,6 +56,7 @@ Item {
                     "ExpressionReading": "{reading}",
                     "ExpressionAudio": "{audio}",
                     "MainDefinition": "{single-glossary-jitendexorg-2025-06-01}",
+                    "Sentence": "{cloze-prefix}<b>{cloze-body}</b>{cloze-suffix}",
                     "Glossary": "{glossary}",
                     "IsWordAndSentenceCard": "x",
                     "PitchPosition": "{pitch-accent-positions}",
