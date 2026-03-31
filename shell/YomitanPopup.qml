@@ -358,7 +358,7 @@ Rectangle {
 
         var body = `
           <form onsubmit="submitQuery(); return false;" class="lookup">
-            <input type="text" id="lquery" value="${term}">
+            <input type="text" id="lquery" value='${term.replace(/&/g, "&amp;").replace(/'/g, "&apos;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}'>
             <button type="submit">Lookup</button>
           </form>
           <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
@@ -491,7 +491,7 @@ Rectangle {
         html += '<span class="term">' + (hw.term ?? "") + '</span>';
         if (hw.reading && hw.reading !== hw.term)
             html += '<span class="reading">' + (hw.reading) + '</span>';
-        html += `<button class="anki anki-add" onclick="addToAnki('${term}', ${index})">＋</button>`;
+        html += `<button class="anki anki-add" onclick='addToAnki(${JSON.stringify(term).replace(/'/g, "&apos;")}, ${index})'>＋</button>`;
         html += '</div>';
 
         // inflections
