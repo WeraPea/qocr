@@ -57,6 +57,7 @@ Rectangle {
             if ((data.dictionaryEntries?.length ?? 0) > 0) {
                 yomitanResponse = data;
                 view.loadHtml(root.buildHtml(yomitanResponse, term));
+                checkAnki(term);
                 if (newPos) {
                     popup.x = newPos.x;
                     popup.y = newPos.y;
@@ -71,7 +72,9 @@ Rectangle {
             var rx = /\{([^}]+)\}/g;
             var match;
             while (match = rx.exec(value)) {
-                yomitanAnkiFields.push(match[1]);
+                if (!yomitanAnkiFields.includes(match[1])) {
+                    yomitanAnkiFields.push(match[1]);
+                }
             }
         }
 
@@ -123,7 +126,194 @@ Rectangle {
                 }
             }, function (res) {
                 console.log("added card " + res);
+                checkAnki(term);
             });
+        });
+    }
+
+    function checkAnki(term) {
+        ankiConnectRequest('modelFieldNames', 6, {
+            modelName: ankiConfig.model
+        }, function (modelFieldNamesResult) {
+            var yomitanAnkiFields = [];
+            const firstFieldName = modelFieldNamesResult[0];
+            const firstFieldValue = ankiConfig.fields[firstFieldName];
+            var rx = /\{([^}]+)\}/g;
+            var match;
+            while (match = rx.exec(firstFieldValue)) {
+                if (!yomitanAnkiFields.includes(match[1])) {
+                    yomitanAnkiFields.push(match[1]);
+                }
+            }
+
+            yomitanRequest("ankiFields", {
+                text: term,
+                type: "term",
+                markers: yomitanAnkiFields,
+                includeMedia: false
+            }, function (ankiFieldsResult) {
+                var notes = [];
+                var notesIndexes = new Map();
+                for (var i = 0; i < ankiFieldsResult.fields.length; i++) {
+                    var ankiField = firstFieldValue;
+                    for (const [kkey, vvalue] of Object.entries(ankiFieldsResult.fields[i])) { // assumes termEntries and ankiFields match
+                        ankiField = ankiField.replace(`{${kkey}}`, vvalue);
+                    }
+
+                    if (!notesIndexes.has(ankiField)) {
+                        notesIndexes.set(ankiField, [i]);
+                    } else {
+                        notesIndexes.get(ankiField).push(i);
+                        continue;
+                    }
+
+                    notes.push({
+                        deckName: ankiConfig.deck,
+                        modelName: ankiConfig.model,
+                        fields: {
+                            [firstFieldName]: ankiField
+                        },
+                        options: {
+                            allowDuplicate: false
+                        }
+                    });
+                }
+
+                ankiConnectRequest('canAddNotesWithErrorDetail', 6, {
+                    notes: notes
+                }, function (canAddNotesResult) {
+                    var actions = [];
+                    var actionsIndexes = [];
+
+                    for (var i = 0; i < canAddNotesResult.length; i++) {
+                        const res = canAddNotesResult[i];
+                        if (res.error === "cannot create note because it is a duplicate") {
+                            const ankiField = notes[i].fields[firstFieldName];
+                            actionsIndexes.push(notesIndexes.get(ankiField));
+                            actions.push({
+                                action: "findCards",
+                                version: 6,
+                                params: {
+                                    query: `"${firstFieldName}:${ankiField}" "deck:${ankiConfig.deck}"`
+                                }
+                            });
+                        }
+                    }
+
+                    ankiConnectRequest('multi', 6, {
+                        actions: actions
+                    }, function (findCardsResults) {
+
+                        var cards = [];
+                        var cardsIndexes = new Map();
+                        for (var i = 0; i < findCardsResults.length; i++) {
+                            for (var j = 0; j < findCardsResults[i].result.length; j++) {
+                                const id = findCardsResults[i].result[j];
+                                cardsIndexes.set(id, actionsIndexes[i]);
+                                cards.push(id);
+                            }
+                        }
+
+                        ankiConnectRequest('areSuspended', 6, {
+                            cards: cards
+                        }, function (areSuspendedResult) {
+                            let entriesInfo = {};
+
+                            for (var i = 0; i < findCardsResults.length; i++) {
+                                const cardIds = findCardsResults[i].result;
+                                if (cardIds.length < 1) {
+                                    continue;
+                                }
+                                const allSuspended = cardIds.every(id => areSuspendedResult[cards.indexOf(id)]);
+
+                                const entryIndexes = cardsIndexes.get(cardIds[0]); // assumes all duplicates map to same note
+
+                                for (const ei of entryIndexes) {
+                                    entriesInfo[ei] = {
+                                        suspended: allSuspended,
+                                        cardIds: cardIds
+                                    };
+                                }
+                            }
+
+                            view.runJavaScript(`
+                                (function() {
+                                    const entriesInfo = ${JSON.stringify(entriesInfo)};
+                                    function updateEntry(idx) {
+                                        const entry = document.querySelector('.entry[data-index="' + idx + '"]');
+                                        if (!entry) {
+                                            return false;
+                                        }
+
+                                        const entryInfo = entriesInfo[idx];
+                                        const header = entry.querySelector('.entry-header');
+                                        const addButton = entry.querySelector('.anki-add');
+
+                                        if (addButton) {
+                                            addButton.classList.remove("anki-suspended");
+                                            if (entryInfo.suspended) {
+                                                addButton.classList.add("anki-suspended");
+                                            }
+                                            addButton.classList.add("anki-duplicate");
+                                            addButton.innerText = "✓";
+                                        }
+
+                                        const existingViewButton = entry.querySelector('.anki-view');
+                                        if (existingViewButton) {
+                                            existingViewButton.remove();
+                                        }
+                                        if (header && addButton) {
+                                            const viewButton = document.createElement('button');
+                                            viewButton.className = 'anki anki-view';
+                                            if (entryInfo.suspended) {
+                                                viewButton.classList.add("anki-suspended");
+                                            }
+                                            viewButton.innerText = "↗";
+                                            viewButton.onclick = () => {
+                                                if (bridge) {
+                                                    bridge.viewInAnki(entryInfo.cardIds);
+                                                }
+                                            };
+                                            header.insertBefore(viewButton, addButton);
+                                        }
+                                        return true;
+                                    }
+
+                                    function applyAll() {
+                                        const keys = Object.keys(entriesInfo);
+                                        for (let i = 0; i < keys.length; i++) {
+                                            const idx = keys[i];
+                                            if (updateEntry(idx)) {
+                                                delete entriesInfo[idx];
+                                            }
+                                        }
+                                    }
+
+                                    applyAll();
+
+                                    if (Object.keys(entriesInfo).length > 0) {
+                                        const observer = new MutationObserver((mutations, obs) => {
+                                            applyAll();
+                                            if (Object.keys(entriesInfo).length === 0) {
+                                                obs.disconnect();
+                                            }
+                                        });
+                                        observer.observe(document.body, { childList: true, subtree: true });
+                                    }
+                                })();
+                            `);
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    function viewInAnki(ids) {
+        ankiConnectRequest('guiBrowse', 6, {
+            query: "cid:" + ids.join(',')
+        }, function (res) {
+            console.log("opened cards " + res);
         });
     }
 
@@ -236,8 +426,10 @@ Rectangle {
         .lookup button:hover { filter: brightness(1.1); }
         .lookup button:active { filter: brightness(0.9); }
 
-        .anki {
+        button.anki:first-of-type {
             margin-left: auto;
+        }
+        .anki {
             background: ${config.foregroundColor};
             color: ${config.backgroundColor};
             border: none;
@@ -248,6 +440,8 @@ Rectangle {
         }
         .anki:hover { filter: brightness(1.1); }
         .anki:active { filter: brightness(0.9); }
+        .anki-duplicate { background-color: #489148; }
+        .anki-add.anki-suspended { background-color: #d4c96e; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: ${config.backgroundColor}; }
@@ -259,14 +453,14 @@ Rectangle {
 
     function buildEntry(entry, term, index) {
         var hw = entry.headwords?.[0] ?? {};
-        var html = '<div class="entry">';
+        var html = `<div class="entry" data-index="${index}">`;
 
         // term + reading + anki button header
         html += '<div class="entry-header">';
         html += '<span class="term">' + (hw.term ?? "") + '</span>';
         if (hw.reading && hw.reading !== hw.term)
             html += '<span class="reading">' + (hw.reading) + '</span>';
-        html += `<button class="anki" onclick="addToAnki('${term}', ${index})">+</button>`;
+        html += `<button class="anki anki-add" onclick="addToAnki('${term}', ${index})">＋</button>`;
         html += '</div>';
 
         // inflections
@@ -494,6 +688,9 @@ Rectangle {
                     }
                     function addToAnki(term, index) {
                         root.addToAnki(term, index);
+                    }
+                    function viewInAnki(ids) {
+                        root.viewInAnki(ids);
                     }
                 }
             }
