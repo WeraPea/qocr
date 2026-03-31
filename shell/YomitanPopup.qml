@@ -89,9 +89,9 @@ Rectangle {
         const clozePrefix = root.line.slice(0, root.symbolIndex);
         const clozeSuffix = root.line.slice(root.symbolIndex + clozeBody.length);
 
-        field = field.replace("{cloze-prefix}", clozePrefix);
-        field = field.replace("{cloze-body}", clozeBody);
-        field = field.replace("{cloze-suffix}", clozeSuffix);
+        field = field.replace(/{cloze-prefix}/g, clozePrefix);
+        field = field.replace(/{cloze-body}/g, clozeBody);
+        field = field.replace(/{cloze-suffix}/g, clozeSuffix);
 
         return field;
     }
@@ -120,7 +120,7 @@ Rectangle {
                 var ankiField = value;
                 for (const [kkey, vvalue] of Object.entries(data.fields[index])) { // assumes termEntries and ankiFields match
                     ankiField = replaceCloze(ankiField, index);
-                    ankiField = ankiField.replace(`{${kkey}}`, vvalue);
+                    ankiField = ankiField.replace(new RegExp(`\\{${kkey}\\}`, 'g'), vvalue);
                 }
                 ankiFields[key] = ankiField;
             }
@@ -189,7 +189,7 @@ Rectangle {
                     var ankiField = firstFieldValue;
                     for (const [kkey, vvalue] of Object.entries(ankiFieldsResult.fields[i])) { // assumes termEntries and ankiFields match
                         ankiField = replaceCloze(ankiField, i);
-                        ankiField = ankiField.replace(`{${kkey}}`, vvalue);
+                        ankiField = ankiField.replace(new RegExp(`\\{${kkey}\\}`, 'g'), vvalue);
                     }
 
                     if (!notesIndexes.has(ankiField)) {
