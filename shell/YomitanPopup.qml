@@ -71,7 +71,7 @@ Rectangle {
     }
 
     function replaceCloze(field, entryIndex) {
-        if (!/\{cloze-.*?\}/.test(field) || !root.line || !root.symbolIndex) {
+        if (!/\{cloze-.*?\}/.test(field) || root.line == null || root.symbolIndex == null) {
             return field;
         }
 
