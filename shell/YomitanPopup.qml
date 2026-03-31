@@ -60,7 +60,7 @@ Rectangle {
                 yomitanResponse = data;
                 root.line = line;
                 root.symbolIndex = index;
-                view.loadHtml(root.buildHtml(yomitanResponse, term));
+                view.loadHtml(root.buildHtml(yomitanResponse, term), "http://dummy.domain/");
                 checkAnki(term);
                 if (newPos) {
                     popup.x = newPos.x;
@@ -722,6 +722,21 @@ Rectangle {
                     }
                     function viewInAnki(ids) {
                         root.viewInAnki(ids);
+                    }
+                }
+                onNavigationRequested: function (req) {
+                    if (req.navigationType === WebEngineNavigationRequest.LinkClickedNavigation) {
+                        req.reject();
+                        var url = req.url.toString();
+                        if (url.startsWith("http://dummy.domain/")) {
+                            var params = new URLSearchParams(req.url.toString().split("?")[1] ?? "");
+                            if (params.has("query")) {
+                                var term = decodeURIComponent(params.get("query"));
+                                root.lookup(term, null, null, null);
+                            }
+                        } else {
+                            Qt.openUrlExternally(req.url);
+                        }
                     }
                 }
             }
