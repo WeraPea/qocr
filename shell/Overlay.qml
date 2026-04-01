@@ -62,7 +62,7 @@ Item {
                     "PitchPosition": "{pitch-accent-positions}",
                     "PitchCategories": "{pitch-accent-categories}",
                     "Frequency": "{frequency-harmonic-rank}",
-                    "FreqSort": "{frequency-harmonic-rank}",
+                    "FreqSort": "{frequency-harmonic-rank}"
                 }
             }
         }
@@ -146,6 +146,40 @@ Item {
             }
             function scan_fullscreen(): void {
                 ocrProc.write(`scan ${root.config.japaneseOnly} true\n`);
+            }
+            function scan_output(output: string): void {
+                var panel = root.panels[output];
+                if (!panel)
+                    return;
+                root.ocrData[output] = {
+                    monitor: output,
+                    region: {
+                        x: panel.screen.x,
+                        y: panel.screen.y,
+                        w: panel.screen.width,
+                        h: panel.screen.height,
+                        X: 0,
+                        Y: 0
+                    }
+                };
+                ocrProc.rescan();
+            }
+            function scan_region(output: string, x: int, y: int, w: int, h: int): void {
+                var panel = root.panels[output];
+                if (!panel)
+                    return;
+                root.ocrData[output] = {
+                    monitor: output,
+                    region: {
+                        x: x,
+                        y: y,
+                        w: w,
+                        h: h,
+                        X: x - panel.screen.x,
+                        Y: y - panel.screen.y
+                    }
+                };
+                ocrProc.rescan();
             }
             function rescan(): void {
                 ocrProc.rescan();
