@@ -218,7 +218,10 @@ Item {
                     target[key] = value;
             }
             function toggle_config(setting: string): void {
-                root.config[setting] = !root.config[setting];
+                var parts = setting.split(".");
+                var target = parts.length > 1 ? root.config[parts[0]] : root.config;
+                var key = parts[parts.length - 1];
+                target[key] = !target[key];
             }
             function get_config(setting: string): string {
                 var parts = setting.split(".");
