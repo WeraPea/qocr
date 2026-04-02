@@ -44,6 +44,7 @@ Item {
                 property int textScanLength: 16
                 property int lookupMaxDistance: 10
                 property bool fetchAudio: false // can be slow if not using a local audio source
+                property bool autoPlayFirstAudio: false
             }
             property JsonObject anki: JsonObject {
                 property bool enable: true

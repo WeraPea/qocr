@@ -363,6 +363,11 @@ Rectangle {
                         var audioMedia = ${JSON.stringify(ankiFieldsResult.audioMedia)};
                         var fields = ${JSON.stringify(ankiFieldsResult.fields)};
 
+                        if (${config.autoPlayFirstAudio}) {
+                            const audio = audioMedia[0];
+                            new Audio('data:' + audio.mediaType + ';base64,' + audio.content).play();
+                        }
+
                         function updateMedia() {
                             const entries = document.querySelectorAll('.entry');
                             if (entries.length !== ${yomitanResponse.dictionaryEntries.length}) {
@@ -817,6 +822,8 @@ Rectangle {
                 id: view
                 anchors.fill: parent
                 backgroundColor: root.config.backgroundColor
+
+                settings.playbackRequiresUserGesture: false
 
                 onContextMenuRequested: function (req) {
                     req.accepted = true;
