@@ -57,11 +57,13 @@ Rectangle {
             term: term
         }, function (data) {
             if ((data.dictionaryEntries?.length ?? 0) > 0) {
+                view.loadHtml("");
                 yomitanResponse = data;
                 root.line = line;
                 root.symbolIndex = index;
                 view.loadHtml(root.buildHtml(yomitanResponse, term), "http://dummy.domain/");
                 checkAnki(term);
+                getMedia(term);
                 if (newPos) {
                     popup.x = newPos.x;
                     popup.y = newPos.y;
@@ -348,9 +350,101 @@ Rectangle {
         });
     }
 
+    function getMedia(term) {
+        yomitanRequest("ankiFields", {
+            text: term,
+            type: "term",
+            markers: ["glossary", ...(config.fetchAudio ? ["audio"] : [])],
+            includeMedia: true
+        }, function (ankiFieldsResult) {
+            if (config.fetchAudio) {
+                view.runJavaScript(`
+                    (function() {
+                        var audioMedia = ${JSON.stringify(ankiFieldsResult.audioMedia)};
+                        var fields = ${JSON.stringify(ankiFieldsResult.fields)};
+
+                        function updateMedia() {
+                            const entries = document.querySelectorAll('.entry');
+                            if (entries.length !== ${yomitanResponse.dictionaryEntries.length}) {
+                                return false;
+                            }
+                            for (let i = 0; i < entries.length; i++) {
+                                const entry = entries[i];
+                                const header = entry.querySelector('.entry-header');
+
+                                if (header) {
+                                    const audioButton = document.createElement('button');
+                                    audioButton.className = 'audio';
+                                    audioButton.innerText = "A";
+                                    audioButton.onclick = () => {
+                                        const filename = fields[i].audio.slice(7, -1); // remove "[sound:" "]"
+                                        const audio = audioMedia.find(m => m.ankiFilename === filename);
+                                        if (audio) {
+                                            new Audio('data:' + audio.mediaType + ';base64,' + audio.content).play()
+                                        }
+                                    };
+                                    header.appendChild(audioButton);
+                                }
+                            }
+
+                            return true;
+                        }
+
+                        if (!updateMedia()) {
+                            const observer = new MutationObserver((mutations, obs) => {
+                                if (updateMedia()) {
+                                    obs.disconnect();
+                                }
+                            });
+                            observer.observe(document.body, { childList: true, subtree: true });
+                        }
+                    })();
+                `);
+            }
+
+            view.runJavaScript(`
+                (function() {
+                    var mediaInfo = ${JSON.stringify(ankiFieldsResult.dictionaryMedia)};
+                    function updateMedia(media) {
+                        const imgs = document.querySelectorAll('img[data-dict-path="' + media.path + '"][data-dict-name="' + media.dictionary + '"]');
+                        if (imgs.length === 0) {
+                            return false;
+                        }
+                        for (let i = 0; i < imgs.length; i++) {
+                            imgs[i].src = 'data:' + media.mediaType + ';base64,' + media.content;
+                        }
+                        return true;
+                    }
+
+                    function applyAll() {
+                        var remaining = [];
+                        for (let i = 0; i < mediaInfo.length; i++) {
+                            if (!updateMedia(mediaInfo[i])) {
+                              remaining.push(mediaInfo[i]);
+                            }
+                        }
+                        mediaInfo = remaining;
+                    }
+
+                    applyAll();
+
+                    if (mediaInfo.length > 0) {
+                        const observer = new MutationObserver((mutations, obs) => {
+                            applyAll();
+                            if (mediaInfo.length === 0) {
+                                obs.disconnect();
+                            }
+                        });
+                        observer.observe(document.body, { childList: true, subtree: true });
+                    }
+                })();
+            `);
+        });
+    }
+
     function clear() {
-        yomitanResponse = "";
         view.loadHtml("");
+        yomitanResponse = "";
     }
 
     function buildHtml(data, term) {
@@ -545,7 +639,7 @@ Rectangle {
             for (var ei = 0; ei < entries.length; ei++) {
                 var ent = entries[ei];
                 if (ent.type === "structured-content")
-                    html += renderNode(ent.content);
+                    html += renderNode(ent.content, def.dictionary);
                 else if (typeof ent === "string")
                     html += '<div style="white-space: pre-wrap">' + ent + "</div>";
             }
@@ -557,13 +651,13 @@ Rectangle {
     }
 
     // Recursively render a dictionary's structured-content node to HTML.
-    function renderNode(node) {
+    function renderNode(node, dictionary) {
         if (typeof node === "string")
             return node;
         if (Array.isArray(node)) {
             var s = "";
             for (var i = 0; i < node.length; i++)
-                s += renderNode(node[i]);
+                s += renderNode(node[i], dictionary);
             return s;
         }
 
@@ -578,7 +672,7 @@ Rectangle {
             return "";
 
         if (!tag)
-            return renderNode(node.content);
+            return renderNode(node.content, dictionary);
 
         var attrs = "";
 
@@ -604,8 +698,31 @@ Rectangle {
                 attrs += ' data-' + k + '="' + (String(node.data[k])) + '"';
         }
 
+        if (tag === "img" && node.path) {
+            attrs += ' data-dict-name="' + dictionary + '"';
+            attrs += ' data-dict-path="' + node.path + '"';
+
+            let style = "";
+            const sizeUnits = node.sizeUnits || "px";
+            const width = node.preferredWidth || node.width;
+            const height = node.preferredHeight || node.height;
+
+            if (width)
+                style += `width:${width}${sizeUnits};`;
+            if (height)
+                style += `height:${height}${sizeUnits};`;
+            if (node.verticalAlign)
+                style += `vertical-align:${node.verticalAlign};`;
+
+            attrs += ' style="' + style + '"';
+
+            if (node.alt) {
+                attrs += ' alt="' + node.alt + '"';
+            }
+        }
+
         if (node.content)
-            var inner = renderNode(node.content);
+            var inner = renderNode(node.content, dictionary);
         else
             inner = "";
 

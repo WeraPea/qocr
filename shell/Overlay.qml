@@ -42,6 +42,7 @@ Item {
                 property string apiUrl: "http://127.0.0.1:19633"
                 property int textScanLength: 16
                 property int lookupMaxDistance: 10
+                property bool fetchAudio: false // can be slow if not using a local audio source
             }
             property JsonObject anki: JsonObject {
                 property bool enable: true
