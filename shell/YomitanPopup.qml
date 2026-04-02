@@ -493,9 +493,13 @@ Rectangle {
             margin: 0;
             --fg: ${config.foregroundColor};
             --text-color: ${config.foregroundColor};
+            --background-color: ${config.backgroundColor};
             --font-size-no-units: 14;
         }
 
+        table { border-collapse: collapse; }
+        td, th { border: 1px solid ${config.separatorColor}; padding: 0.2em; }
+        th { background: ${config.backgroundSecondaryColor}; }
         hr.entry-sep {
             border: none;
             border-top: 1px solid ${config.separatorColor};

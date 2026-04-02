@@ -38,6 +38,7 @@ Item {
                 property string borderColor: "#56b7a5"
                 property string separatorColor: "#505050"
                 property string foregroundSecondaryColor: "#909090"
+                property string backgroundSecondaryColor: "#303030"
                 property string extraCss: ""
                 property string apiUrl: "http://127.0.0.1:19633"
                 property int textScanLength: 16
