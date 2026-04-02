@@ -375,7 +375,7 @@ Rectangle {
                                 if (header) {
                                     const audioButton = document.createElement('button');
                                     audioButton.className = 'audio';
-                                    audioButton.innerText = "A";
+                                    audioButton.innerHTML = '<svg viewBox="0 0 10 10" width="0.8em" height="0.8em"><polygon points="2,1 9,5 2,9" fill="currentColor"/></svg>';
                                     audioButton.onclick = () => {
                                         const filename = fields[i].audio.slice(7, -1); // remove "[sound:" "]"
                                         const audio = audioMedia.find(m => m.ankiFilename === filename);
@@ -542,7 +542,7 @@ Rectangle {
             font-size: 1em;
             outline: none;
         }
-        .lookup button {
+        .lookup button, .anki, .audio {
             background: ${config.foregroundColor};
             color: ${config.backgroundColor};
             border: none;
@@ -558,19 +558,19 @@ Rectangle {
         button.anki:first-of-type {
             margin-left: auto;
         }
-        .anki {
-            background: ${config.foregroundColor};
-            color: ${config.backgroundColor};
-            border: none;
-            border-radius: 0.25em;
-            padding: 0.2em 0.3em;
-            font-size: 1em;
-            cursor: pointer;
-        }
         .anki:hover { filter: brightness(1.1); }
         .anki:active { filter: brightness(0.9); }
         .anki-duplicate { background-color: #489148; }
         .anki-add.anki-suspended { background-color: #d4c96e; }
+
+        .anki, .audio {
+            width: 1.5em;
+            height: 1.5em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: ${config.backgroundColor}; }
