@@ -666,14 +666,9 @@ Rectangle {
         }
 
         var tag = node.tag;
-        var dc = node.data?.content;
 
         if (tag === "br")
             return "<br>";
-
-        // skip for now
-        if (dc === "attribution")
-            return "";
 
         if (!tag)
             return renderNode(node.content, dictionary);
