@@ -74,8 +74,8 @@ Rectangle {
                     checkAnki(term, gen);
                     getMedia(term, gen);
                     if (newPos) {
-                        popup.x = newPos.x;
-                        popup.y = newPos.y;
+                        popup.x = Math.round(newPos.x);
+                        popup.y = Math.round(newPos.y);
                     }
                 }
             });
@@ -860,6 +860,7 @@ Rectangle {
             WebEngineView {
                 id: view
                 anchors.fill: parent
+                anchors.margins: borderRect.border.width
                 backgroundColor: root.config.backgroundColor
 
                 settings.playbackRequiresUserGesture: false
@@ -904,6 +905,7 @@ Rectangle {
             }
 
             Rectangle {
+                id: borderRect
                 anchors.fill: parent
                 color: "transparent"
                 border.color: root.config.borderColor
