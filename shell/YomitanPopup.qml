@@ -20,6 +20,8 @@ Rectangle {
     property var yomitanResponse: ""
     property var line: ""
     property var symbolIndex
+    property var term
+    property int gen: 0
 
     function yomitanRequest(endpoint, body, callback) {
         var xhr = new XMLHttpRequest();
@@ -53,23 +55,38 @@ Rectangle {
     }
 
     function lookup(term, newPos, line, index) {
-        yomitanRequest("termEntries", {
-            term: term
-        }, function (data) {
-            if ((data.dictionaryEntries?.length ?? 0) > 0) {
-                view.loadHtml("");
-                yomitanResponse = data;
-                root.line = line;
-                root.symbolIndex = index;
-                view.loadHtml(root.buildHtml(yomitanResponse, term), "http://dummy.domain/");
-                checkAnki(term);
-                getMedia(term);
-                if (newPos) {
-                    popup.x = newPos.x;
-                    popup.y = newPos.y;
+        if (term !== root.term) {
+            root.term = term;
+            root.gen++;
+            var gen = root.gen;
+            yomitanRequest("termEntries", {
+                term: term
+            }, function (data) {
+                if (gen !== root.gen) {
+                    return;
                 }
+                if ((data.dictionaryEntries?.length ?? 0) > 0) {
+                    view.loadHtml("");
+                    yomitanResponse = data;
+                    root.line = line;
+                    root.symbolIndex = index;
+                    view.loadHtml(root.buildHtml(yomitanResponse, term), "http://dummy.domain/");
+                    checkAnki(term, gen);
+                    getMedia(term, gen);
+                    if (newPos) {
+                        popup.x = newPos.x;
+                        popup.y = newPos.y;
+                    }
+                }
+            });
+        } else {
+            if (newPos) {
+                popup.x = newPos.x;
+                popup.y = newPos.y;
             }
-        });
+            root.line = line;
+            root.symbolIndex = index;
+        }
     }
 
     function replaceCloze(field, entryIndex) {
@@ -164,10 +181,13 @@ Rectangle {
         });
     }
 
-    function checkAnki(term) {
+    function checkAnki(term, gen) {
         ankiConnectRequest('modelFieldNames', 6, {
             modelName: ankiConfig.model
         }, function (modelFieldNamesResult) {
+            if (gen !== root.gen) {
+                return;
+            }
             var yomitanAnkiFields = [];
             const firstFieldName = modelFieldNamesResult[0];
             const firstFieldValue = ankiConfig.fields[firstFieldName];
@@ -185,6 +205,9 @@ Rectangle {
                 markers: yomitanAnkiFields,
                 includeMedia: false
             }, function (ankiFieldsResult) {
+                if (gen !== root.gen) {
+                    return;
+                }
                 var notes = [];
                 var notesIndexes = new Map();
                 for (var i = 0; i < ankiFieldsResult.fields.length; i++) {
@@ -216,6 +239,9 @@ Rectangle {
                 ankiConnectRequest('canAddNotesWithErrorDetail', 6, {
                     notes: notes
                 }, function (canAddNotesResult) {
+                    if (gen !== root.gen) {
+                        return;
+                    }
                     var actions = [];
                     var actionsIndexes = [];
 
@@ -237,6 +263,9 @@ Rectangle {
                     ankiConnectRequest('multi', 6, {
                         actions: actions
                     }, function (findCardsResults) {
+                        if (gen !== root.gen) {
+                            return;
+                        }
                         var cards = [];
                         var cardsIndexes = new Map();
                         for (var i = 0; i < findCardsResults.length; i++) {
@@ -250,6 +279,9 @@ Rectangle {
                         ankiConnectRequest('areSuspended', 6, {
                             cards: cards
                         }, function (areSuspendedResult) {
+                            if (gen !== root.gen) {
+                                return;
+                            }
                             let entriesInfo = {};
 
                             for (var i = 0; i < findCardsResults.length; i++) {
@@ -350,13 +382,16 @@ Rectangle {
         });
     }
 
-    function getMedia(term) {
+    function getMedia(term, gen) {
         yomitanRequest("ankiFields", {
             text: term,
             type: "term",
             markers: ["glossary", ...(config.fetchAudio ? ["audio"] : [])],
             includeMedia: true
         }, function (ankiFieldsResult) {
+            if (gen !== root.gen) {
+                return;
+            }
             if (config.fetchAudio) {
                 view.runJavaScript(`
                     (function() {
@@ -449,6 +484,10 @@ Rectangle {
 
     function clear() {
         view.loadHtml("");
+        gen++;
+        term = null;
+        line = null;
+        symbolIndex = null;
         yomitanResponse = "";
     }
 
