@@ -10,6 +10,7 @@ Item {
     property alias config: config
     property bool showOverlay: config.showOverlay
     property var panels: ({})
+    property bool hoverPopup: false
 
     FileView {
         path: `${Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config"}/qocr/config.json`
@@ -239,6 +240,14 @@ Item {
                     y: y
                 });
             }
+            function hover_on(): string {
+                var old = root.hoverPopup;
+                root.hoverPopup = true;
+                return !old;
+            }
+            function hover_off(): void {
+                root.hoverPopup = false;
+            }
         }
     }
 
@@ -283,7 +292,7 @@ Item {
             }
 
             function updateRegions() {
-                panel.regionItems = root.config.showOverlay ? panel.lineRects : [];
+                panel.regionItems = (root.config.showOverlay || root.hoverPopup) ? panel.lineRects : [];
             }
 
             color: "transparent"
@@ -338,7 +347,12 @@ Item {
                     hoveredLines = Object.assign({}, hoveredLines); // trigger binding
                 }
 
-                onPointChanged: hover.updateHovered(point.position)
+                onPointChanged: {
+                    hover.updateHovered(point.position);
+                    if (root.hoverPopup) {
+                        yomitanLookup.lookup(point.position);
+                    }
+                }
                 onHoveredChanged: if (!hovered) {
                     hover.hoveredLines = {};
                 }
