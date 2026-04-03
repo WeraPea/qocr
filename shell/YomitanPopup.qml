@@ -115,7 +115,7 @@ Rectangle {
         return field;
     }
 
-    function addToAnki(term, index) {
+    function addToAnki(term, index, gen) {
         var yomitanAnkiFields = [];
         for (const [key, value] of Object.entries(ankiConfig.fields)) {
             var rx = /\{([^}]+)\}/g;
@@ -176,7 +176,7 @@ Rectangle {
                 }
             }, function (res) {
                 console.log("added card " + res);
-                checkAnki(term);
+                checkAnki(term, gen);
             });
         });
     }
@@ -881,7 +881,7 @@ Rectangle {
                         root.lookup(term, null, null, null);
                     }
                     function addToAnki(term, index) {
-                        root.addToAnki(term, index);
+                        root.addToAnki(term, index, root.gen);
                     }
                     function viewInAnki(ids) {
                         root.viewInAnki(ids);
