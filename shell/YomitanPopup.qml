@@ -71,7 +71,9 @@ Rectangle {
                     root.line = line;
                     root.symbolIndex = index;
                     view.loadHtml(root.buildHtml(yomitanResponse, term), "http://dummy.domain/");
-                    checkAnki(term, gen);
+                    if (ankiConfig.enable) {
+                        checkAnki(term, gen);
+                    }
                     getMedia(term, gen);
                     if (newPos) {
                         popup.x = Math.round(newPos.x);
@@ -633,7 +635,9 @@ Rectangle {
         html += '<span class="term">' + (hw.term ?? "") + '</span>';
         if (hw.reading && hw.reading !== hw.term)
             html += '<span class="reading">' + (hw.reading) + '</span>';
-        html += `<button class="anki anki-add" onclick='addToAnki(${JSON.stringify(term).replace(/'/g, "&apos;")}, ${index})'>＋</button>`;
+        if (ankiConfig.enable) {
+            html += `<button class="anki anki-add" onclick='addToAnki(${JSON.stringify(term).replace(/'/g, "&apos;")}, ${index})'>＋</button>`;
+        }
         html += '</div>';
 
         // inflections
