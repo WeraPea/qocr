@@ -11,10 +11,10 @@ stdenvNoCC.mkDerivation {
   pname = "qocr";
   version = "0.1.0";
   src = lib.cleanSourceWith {
-    src = ./.;
+    src = ./..;
     filter =
       path: type:
-      (builtins.any (prefix: lib.path.hasPrefix (./. + prefix) (/. + path)) [
+      (builtins.any (prefix: lib.path.hasPrefix (./.. + prefix) (/. + path)) [
         /shell.qml
         /shell
       ]);

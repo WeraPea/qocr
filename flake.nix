@@ -24,6 +24,7 @@
       );
     in
     {
+      homeModules.qocr = import ./nix/hm-module.nix self;
       packages = eachSystem (
         system:
         let
@@ -37,7 +38,7 @@
       overlays.default =
         final: prev:
         let
-          qocrd = final.python3.pkgs.callPackage ./qocrd.nix { };
+          qocrd = final.python3.pkgs.callPackage ./nix/qocrd.nix { };
           quickshell = (
             prev.quickshell.overrideAttrs (old: {
               buildInputs = (builtins.filter (x: x != final.jemalloc) old.buildInputs) ++ [
@@ -49,7 +50,7 @@
               patches = (old.patches or [ ]) ++ [ ./quickshell.patch ];
             })
           );
-          qocr = final.callPackage ./qocr.nix { inherit qocrd quickshell; };
+          qocr = final.callPackage ./nix/qocr.nix { inherit qocrd quickshell; };
         in
         {
           inherit qocr qocrd quickshell;

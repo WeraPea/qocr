@@ -11,7 +11,7 @@
 buildPythonApplication {
   pname = "qocrd";
   version = "0.1.0";
-  src = ./.;
+  src = ./..;
 
   pyproject = true;
   build-system = [ setuptools ];
@@ -23,7 +23,7 @@ buildPythonApplication {
     protobuf
   ];
 
-  meta = with lib; {
+  meta = {
     mainProgram = "qocrd";
     license = lib.licenses.gpl3Only;
     platforms = lib.platforms.linux;
