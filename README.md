@@ -121,6 +121,7 @@ qocr exposes IPC via Quickshell: `qocr ipc call ocr <command>`
 | `clear_all` | clear everything |
 | `show_region` | briefly flash the current region |
 | `trigger_popup <x> <y> <monitor>` | trigger Yomitan lookup at screen coordinates |
+| `close_popup` | close Yomitan popup |
 | `hover_on` / `hover_off` | enable/disable hover lookup mode |
 | `toggle_config <key>` | toggle a boolean config value |
 | `set_config <key> <value>` | set a config value |

@@ -248,6 +248,11 @@ Item {
             function hover_off(): void {
                 root.hoverPopup = false;
             }
+            function close_popup(): void {
+                Object.values(root.panels).forEach(function (panel) {
+                    panel.yomitanPopup.clear();
+                });
+            }
         }
     }
 
@@ -377,6 +382,7 @@ Item {
                 config: root.config.yomitan
             }
 
+            property alias yomitanPopup: yomitanPopup
             YomitanPopup {
                 id: yomitanPopup
                 config: root.config.yomitan
