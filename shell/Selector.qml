@@ -121,6 +121,7 @@ Item {
     DragHandler {
         id: dragHandler
         target: null
+        dragThreshold: 0
         onActiveChanged: {
             if (active) {
                 selector.dragStart = centroid.position;
