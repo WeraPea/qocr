@@ -240,6 +240,16 @@ Item {
                     y: y
                 });
             }
+            function trigger_popup_term(x: int, y: int, monitor: string, term: string, full_line: string, term_index: int): void {
+                var panel = root.panels[monitor];
+                if (!panel)
+                    return;
+
+                panel.yomitanPopup.lookup(term, {
+                    x: x,
+                    y: y
+                }, full_line, term_index);
+            }
             function hover_on(): string {
                 var old = root.hoverPopup;
                 root.hoverPopup = true;
