@@ -154,12 +154,13 @@ qocr exposes IPC via Quickshell: `qocr ipc call ocr <command>`
 | `scan` | select a region with slurp and OCR it |
 | `scan_fullscreen` | select a whole output with slurp |
 | `scan_output <name>` | OCR a specific output by name |
-| `scan_region <output> <x> <y> <w> <h>` | OCR a specific region |
+| `scan_region <monitor> <x> <y> <w> <h>` | OCR a specific region, relative to the `monitor`'s top-left |
 | `rescan` | re-OCR current regions |
-| `clear_overlay` | clear text overlays (keep regions) |
-| `clear_all` | clear everything |
+| `clear_overlay` | clear text overlays, keep regions |
+| `clear_all` | clear overlays and regions |
 | `show_region` | briefly flash the current region |
-| `trigger_popup <x> <y> <monitor>` | trigger Yomitan lookup at screen coordinates |
+| `trigger_popup <x> <y> <monitor>` | trigger Yomitan lookup using OCR at (`x`, `y`), relative to the `monitor`'s top-left |
+| `trigger_popup_term <x> <y> <monitor> <term> <full_line> <term_index>` | trigger Yomitan lookup for `term`, with popup's top-left positioned at (`x`, `y`), relative to the `monitor`'s top-left. `full_line` is the whole line containing the term (used for Anki cloze fields, and (partially) shown in the popup search box). `term_index` is 0-based character index of the `term` inside the `full_line`. |
 | `close_popup` | close Yomitan popup |
 | `hover_on` / `hover_off` | enable/disable hover lookup mode |
 | `toggle_config <key>` | toggle a boolean config value |
