@@ -29,15 +29,20 @@ inspired by [meikipop](https://github.com/rtr46/meikipop). Chrome Screen AI inte
 ## installation
 
 ### nix flake
+
+1. Add the repository to flake inputs:
 ```nix
 # flake inputs
 inputs.qocr.url = "github:WeraPea/qocr";
+```
 
+2. Enable the qocr service in the `flake.nix` file as shown below:
+```nix
 # home-manager
 home-manager.users."username".imports = [
   inputs.qocr.homeModules.qocr
   {
-    services.qocr,{
+    services.qocr = {
       enable = true;
       settings = {
         japaneseOnly = true;
@@ -46,13 +51,47 @@ home-manager.users."username".imports = [
     };
   }
 ];
+```
+Alternatively, you may create a new Nix file inside your Home Manager's modules directory and enable the service
+```nix
+# modules/home-manager/qocr.nix
+{ inputs, ... }:
 
+{
+  imports = [ inputs.qocr.homeModules.qocr ];
+
+  services.qocr = {
+    enable = true;
+    settings = {
+      japaneseOnly = true;
+      yomitan.apiUrl = "http://127.0.0.1:19633";
+    };
+  };
+}
 ```
 
 ### Chrome Screen AI model
 Download the Screen AI component and extract it to `~/.config/screen_ai/resources/`:
 
 [https://chrome-infra-packages.appspot.com/p/chromium/third_party/screen-ai](https://chrome-infra-packages.appspot.com/p/chromium/third_party/screen-ai)
+
+When the file is extracted, it will create its own `resources` folder. You may want to extract the file in the `~/.config/screen_ai/` folder, so it creates the `resources` folder in the correct directory. Ensure that your folder structure does **not** look like: `~/.config/screen_ai/resources/resources`.
+
+You may also put the `resources` folder in a static directory inside your Nix configuration folder, and create a symlink to the required directory with Home Manager. The following can be added to the same Home Manager module shown in the [Installation section](#installation).
+
+```nix
+{ inputs, ... }:
+
+{
+  ...
+
+  # Copy the required Chrome Screen AI files to the correct directory
+  home.file.".config/screen_ai/resources" = {
+    source = PATH/TO/static/qocr/resources;
+    recursive = true;
+  };
+}
+```
 
 The daemon will tell you this if the files are missing.
 
