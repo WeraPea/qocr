@@ -618,8 +618,9 @@ Rectangle {
             padding: 0;
         }
 
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px }
         ::-webkit-scrollbar-track { background: ${config.backgroundColor}; }
+        ::-webkit-scrollbar-corner { background: ${config.backgroundColor}; }
         ::-webkit-scrollbar-thumb { background: ${config.foregroundSecondaryColor}; border-radius: 3px; }
         ${config.extraCss}
         </style>
