@@ -66,11 +66,10 @@ Rectangle {
                     return;
                 }
                 if ((data.dictionaryEntries?.length ?? 0) > 0) {
-                    view.loadHtml("");
                     yomitanResponse = data;
                     root.line = line;
                     root.symbolIndex = index;
-                    view.loadHtml(root.buildHtml(yomitanResponse, term), "http://dummy.domain/");
+                    view.loadHtml(root.buildHtml(yomitanResponse, term), "qrc:/popup/");
                     if (ankiConfig.enable) {
                         checkAnki(term, gen);
                     }
@@ -896,7 +895,7 @@ Rectangle {
                     if (req.navigationType === WebEngineNavigationRequest.LinkClickedNavigation) {
                         req.reject();
                         var url = req.url.toString();
-                        if (url.startsWith("http://dummy.domain/")) {
+                        if (url.startsWith("qrc:/popup/")) {
                             var params = new URLSearchParams(req.url.toString().split("?")[1] ?? "");
                             if (params.has("query")) {
                                 var term = decodeURIComponent(params.get("query"));
